@@ -91,7 +91,12 @@ def make_guess(game_id):
     game = games[game_id]
 
     if game['over']:
-        return jsonify({'error': 'Game is already over'}), 400
+        return jsonify({
+            'correct': False,
+            'game_over': True,
+            'name': game['player']['name'],
+            'clues': get_clues_up_to_stage(game['player'], len(CLUE_ORDER) - 1)
+        })
 
     data = request.get_json()
     guess = data.get('guess', '').strip().lower()
@@ -106,13 +111,10 @@ def make_guess(game_id):
             'clues': get_clues_up_to_stage(game['player'], len(CLUE_ORDER) - 1)
         })
 
-    # Wrong guess — advance stage or trigger final guess
     next_stage = game['stage'] + 1
 
     if next_stage >= len(CLUE_ORDER):
-        # All clues revealed, this is the final guess
         if game['final_guess']:
-            # They already had their final guess, game over
             game['over'] = True
             return jsonify({
                 'correct': False,
@@ -125,6 +127,7 @@ def make_guess(game_id):
             return jsonify({
                 'correct': False,
                 'final_guess': True,
+                'name': game['player']['name'],
                 'clues': get_clues_up_to_stage(game['player'], len(CLUE_ORDER) - 1)
             })
     else:
