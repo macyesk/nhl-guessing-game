@@ -51,6 +51,7 @@ export default function Game() {
   const [correctName, setCorrectName] = useState(null);
   const [won, setWon] = useState(false);
   const [revealedName, setRevealedName] = useState(null);
+  const [revealCount, setRevealCount] = useState(0);
 
   const startGame = async () => {
     const res = await fetch(`${API}/game/new`);
@@ -64,6 +65,7 @@ export default function Game() {
     setCorrectName(null);
     setWon(false);
     setRevealedName(null);
+    setRevealCount(1);
   };
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export default function Game() {
 
   const revealClue = async () => {
     if (!gameId) return;
-    
+
     const currentGroupCount = getConsolidatedClues(clues).length;
     let newGroupCount = currentGroupCount;
     let finalReached = false;
@@ -103,6 +105,7 @@ export default function Game() {
         finalReached = true;
       }
     }
+    setRevealCount((prev) => prev + 1);
   };
 
   const submitGuess = async () => {
@@ -115,12 +118,13 @@ export default function Game() {
     const data = await res.json();
 
     if (data.correct) {
+      const msg = `✅ Correct! It took ${revealCount} clue${revealCount === 1 ? "" : "s"} to guess ${data.name}.`;
       setWon(true);
       setGameOver(true);
       setCorrectName(data.name);
       setRevealedName(data.name);
       setClues(data.clues);
-      setMessage(`✅ Correct! The player was ${data.name}.`);
+      setMessage(msg);
     } else if (data.game_over) {
       setGameOver(true);
       setCorrectName(data.name);
@@ -142,8 +146,17 @@ export default function Game() {
   const consolidatedClues = getConsolidatedClues(clues);
 
   return (
-    <div style={{ maxWidth: 500, margin: "20px auto", fontFamily: "sans-serif", padding: "15px" }}>
-      <h1 style={{ fontSize: "28px", marginBottom: "15px" }}>🏒 NHL Player Guesser</h1>
+    <div
+      style={{
+        maxWidth: 500,
+        margin: "20px auto",
+        fontFamily: "sans-serif",
+        padding: "15px",
+      }}
+    >
+      <h1 style={{ fontSize: "28px", marginBottom: "15px" }}>
+        🏒 NHL Player Guesser
+      </h1>
 
       {!gameId ? (
         <button
@@ -166,7 +179,11 @@ export default function Game() {
           <div style={{ marginBottom: "15px" }}>
             <div style={{ textAlign: "center", marginBottom: "15px" }}>
               {clues.headshot ? (
-                <img src={clues.headshot} alt="player" style={{ height: 120, borderRadius: "8px" }} />
+                <img
+                  src={clues.headshot}
+                  alt="player"
+                  style={{ height: 120, borderRadius: "8px" }}
+                />
               ) : (
                 <div
                   style={{
@@ -186,38 +203,78 @@ export default function Game() {
                 </div>
               )}
               {revealedName && (
-                <div style={{ fontSize: "16px", fontWeight: "bold", marginTop: "10px", color: "white" }}>
+                <div
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    marginTop: "10px",
+                    color: "white",
+                  }}
+                >
                   {revealedName}
                 </div>
               )}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "15px" }}>
-              {consolidatedClues.map((group) => (
-                group.title !== "Picture" && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "10px",
+                marginBottom: "15px",
+              }}
+            >
+              {CONSOLIDATED_CLUES.filter(group => group.title !== "Picture").map((group) => {
+                const isRevealed = consolidatedClues.some(c => c.level === group.level);
+                return (
                   <div
                     key={group.level}
                     style={{
-                      border: "1px solid #ddd",
+                      border: isRevealed ? "1px solid #ddd" : "1px solid #e8e8e8",
                       borderRadius: "6px",
                       padding: "12px",
-                      backgroundColor: "#f9f9f9",
+                      backgroundColor: isRevealed ? "#f9f9f9" : "#f0f0f0",
+                      minHeight: "60px",
                     }}
                   >
-                    <div style={{ fontSize: "13px", fontWeight: "bold", marginBottom: "8px", color: "#333" }}>
-                      {group.title}
-                    </div>
-                    <div style={{ fontSize: "13px", color: "#555", lineHeight: "1.4" }}>
-                      {group.title === "Birth Location" && formatBirthLocation(clues)}
-                      {group.title === "Play Style" && formatPlayStyle(clues)}
-                      {group.title === "Birthdate" && clues.birthDate}
-                      {group.title === "Physical" && `${clues.height}, ${clues.weight} lbs`}
-                      {group.title === "Sweater Number" && `#${clues.sweaterNumber}`}
-                      {group.title === "Team" && clues.teamAbbr}
-                    </div>
+                    {isRevealed ? (
+                      <>
+                        <div
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: "bold",
+                            marginBottom: "8px",
+                            color: "#333",
+                          }}
+                        >
+                          {group.title}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "13px",
+                            color: "#555",
+                            lineHeight: "1.4",
+                          }}
+                        >
+                          {group.title === "Birth Location" &&
+                            formatBirthLocation(clues)}
+                          {group.title === "Play Style" && formatPlayStyle(clues)}
+                          {group.title === "Birthdate" && clues.birthDate}
+                          {group.title === "Physical" &&
+                            `${clues.height}, ${clues.weight} lbs`}
+                          {group.title === "Sweater Number" &&
+                            `#${clues.sweaterNumber}`}
+                          {group.title === "Team" && clues.teamAbbr}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ color: "#ccc", fontSize: "12px" }}>
+                        {group.title}
+                      </div>
+                    )}
                   </div>
-                )
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -275,22 +332,36 @@ export default function Game() {
           )}
 
           {(revealedName || gameOver) && (
-            <button
-              onClick={startGame}
-              style={{
-                width: "100%",
-                padding: "10px",
-                fontSize: "16px",
-                cursor: "pointer",
-                backgroundColor: "#007bff",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                marginBottom: "15px",
-              }}
-            >
-              Play Again
-            </button>
+            <>
+              <button
+                onClick={startGame}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  fontSize: "16px",
+                  cursor: "pointer",
+                  backgroundColor: "#007bff",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  marginBottom: "10px",
+                }}
+              >
+                Play Again
+              </button>
+              {won && (
+                <p
+                  style={{
+                    fontSize: "14px",
+                    textAlign: "center",
+                    color: "#28a745",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Clues needed: {revealCount}
+                </p>
+              )}
+            </>
           )}
         </>
       )}
