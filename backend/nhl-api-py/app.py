@@ -19,29 +19,79 @@ def build_roster_df():
         for positiontype in ['forwards', 'defensemen', 'goalies']:
             teambyposition = []
             for each in roster[positiontype]:
-                fname = str(each['firstName']['default'])
-                lname = str(each['lastName']['default'])
-                height = str(each['heightInInches'] // 12) + "'" + str(each['heightInInches'] % 12) + '"'
-                weight = each['weightInPounds']
-                birthcountry = str(each['birthCountry'])
-                birthcity = str(each['birthCity']['default'])
-                birthdate = str(each['birthDate'])
-                shootinghand = str(each['shootsCatches'])
-                if each.get('birthStateProvince'):
-                    birthstateprov = str(each['birthStateProvince']['default'])
+                # Safely extract firstName
+                fname = each.get('firstName')
+                fname = fname.get('default') if fname else None
+                fname = str(fname) if fname else None
+                
+                # Safely extract lastName
+                lname = each.get('lastName')
+                lname = lname.get('default') if lname else None
+                lname = str(lname) if lname else None
+                
+                # Safely extract and format height
+                height_inches = each.get('heightInInches')
+                if height_inches:
+                    height = str(height_inches // 12) + "'" + str(height_inches % 12) + '"'
                 else:
-                    birthstateprov = None
+                    height = None
+                
+                # Safely extract weight
+                weight = each.get('weightInPounds')
+                
+                # Safely extract birthCountry
+                birthcountry = each.get('birthCountry')
+                birthcountry = str(birthcountry) if birthcountry else None
+                
+                # Safely extract birthCity
+                birthcity = each.get('birthCity')
+                birthcity = birthcity.get('default') if birthcity else None
+                birthcity = str(birthcity) if birthcity else None
+                
+                # Safely extract birthDate
+                birthdate = each.get('birthDate')
+                birthdate = str(birthdate) if birthdate else None
+                
+                # Safely extract shootingHand
+                shootinghand = each.get('shootsCatches')
+                shootinghand = str(shootinghand) if shootinghand else None
+                
+                # Safely extract birthStateProvince
+                birthstateprov = each.get('birthStateProvince')
+                birthstateprov = birthstateprov.get('default') if birthstateprov else None
+                birthstateprov = str(birthstateprov) if birthstateprov else None
+                
+                # Safely extract sweater number
+                sweater_number = each.get('sweaterNumber')
+                
+                # Safely extract headshot
+                headshot = each.get('headshot')
+                headshot = str(headshot) if headshot else None
+                
+                # Safely extract positionCode
+                position = each.get('positionCode')
+                position = str(position) if position else None
+                
+                # Build player dict with safe values
+                full_name = None
+                if fname and lname:
+                    full_name = fname + ' ' + lname
+                elif fname:
+                    full_name = fname
+                elif lname:
+                    full_name = lname
+                
                 playerdict = {
-                    'id': each['id'],
-                    'name': fname + ' ' + lname,
+                    'id': each.get('id'),
+                    'name': full_name,
                     'height': height,
                     'weight': weight,
                     'birthCountry': birthcountry,
                     'birthStateOrProv': birthstateprov,
                     'birthCity' : birthcity,
-                    'headshot': str(each['headshot']),
-                    'sweaterNumber': each['sweaterNumber'],
-                    'position': str(each['positionCode']),
+                    'headshot': headshot,
+                    'sweaterNumber': sweater_number,
+                    'position': position,
                     'teamAbbr': team,
                     'birthDate' : birthdate,
                     'shootingHand' : shootinghand
